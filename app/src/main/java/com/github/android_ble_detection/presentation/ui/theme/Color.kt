@@ -1,4 +1,4 @@
-package com.github.android_ble_detection.ui.theme
+package com.github.android_ble_detection.presentation.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
