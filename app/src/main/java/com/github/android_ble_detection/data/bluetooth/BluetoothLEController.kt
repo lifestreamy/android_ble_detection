@@ -34,6 +34,8 @@ class BluetoothLEController(private val context: Context) {
     private var blAdapter: BluetoothAdapter? = null
     private var bleScanner: BluetoothLeScanner? = null
 
+//    private var currentScanConfigType: ScanConfig.BleScanConfigType = ScanConfig.defaultConfig
+
     private val defaultScanCallback: ScanCallback =
         DefaultScanCallback(singleDeviceScanCallback = { callbackType, device ->
             scope.launch {
@@ -48,12 +50,11 @@ class BluetoothLEController(private val context: Context) {
                             }
                         }
                     }
-                    SingleCallbackType.FIRST_MATCH -> { /* triggers when found device passes filter */
+                    SingleCallbackType.FIRST_MATCH -> { /* triggers only for the first packet from device passing filter  */
                     }
                     SingleCallbackType.MATCH_LOST -> {
                         _scannedDevicesMap.update { map ->
                             map.toMutableMap().apply { remove(device.address) }
-
                         }
                     }
                     SingleCallbackType.UNKNOWN -> {/* for when statement exhaustion, should not occur*/
@@ -63,7 +64,11 @@ class BluetoothLEController(private val context: Context) {
             }
         },
             onBatchFlush = { list ->
-                _flushedDevicesList.update { list }
+                _scannedDevicesMap.update {
+                    list.associateBy {
+                        it.address
+                    }
+                }
             },
             onScanFailed = { scanExc ->
                 scope.launch {
@@ -72,14 +77,10 @@ class BluetoothLEController(private val context: Context) {
             })
 
 
-    private val _flushedDevicesList: MutableStateFlow<List<BluetoothLeDevice>> =
-        MutableStateFlow(emptyList())
-    val flushedDevicesList = _flushedDevicesList.asStateFlow()
-
-
     private val _scannedDevicesMap: MutableStateFlow<Map<String, BluetoothLeDevice>> =
         MutableStateFlow(emptyMap())
-    val scannedDevicesListFlow : Flow<List<BluetoothLeDevice>> = _scannedDevicesMap.map { map -> map.values.toList() }.flowOn(Dispatchers.IO)
+    val scannedDevicesListFlow: Flow<List<BluetoothLeDevice>> =
+        _scannedDevicesMap.map { map -> map.values.toList() }.flowOn(Dispatchers.IO)
 
 
     init {
@@ -105,10 +106,38 @@ class BluetoothLEController(private val context: Context) {
         return true
     }
 
-    fun startScan() {
-//        if (!isScanning) {} commented out for test
-        bleScanner?.startScan(defaultScanCallback)
-        isScanning = true
+    fun startScanForAllDevices(duration: Long? = null) {
+        if (!isScanning) {
+            scope.launch {
+                bleScanner?.startScan(
+                    ScanConfig.defaultConfig.filters,
+                    ScanConfig.defaultConfig.settings,
+                    defaultScanCallback
+                )
+                isScanning = true
+                duration?.let {
+                    delay(it)
+                    stopScan()
+                }
+            }
+        } else emitError("Can't scan for all devices: already scanning")
+    }
+
+    fun startScanForMyDevices(duration: Long? = null) {
+        if (!isScanning) {
+            scope.launch {
+                bleScanner?.startScan(
+                    ScanConfig.myDevicesConfig.filters,
+                    ScanConfig.myDevicesConfig.settings,
+                    defaultScanCallback
+                )
+                isScanning = true
+                duration?.let {
+                    delay(it)
+                    stopScan()
+                }
+            }
+        } else emitError("Can't scan for my devices: already scanning")
     }
 
     fun stopScan() {
@@ -118,18 +147,9 @@ class BluetoothLEController(private val context: Context) {
         } else emitError("Can't stop scan: not scanning")
     }
 
-    fun startScanForDuration(duration: Long) {
-        scope.launch {
-            if (!isInitialized) initScanner()
-            if (!isScanning) {
-                startScan()
-                delay(duration)
-                stopScan()
-            } else _errors.emit("Can't start scan for duration: scan already started")
-        }
-    }
 
-
+    // Will only deliver results if delay in ScanSettings is > 0
+    // Probably not needed
     fun flushLastScans() {
         if (isScanning) bleScanner!!.flushPendingScanResults(defaultScanCallback)
         else emitError("Cannot flush scans while not scanning")

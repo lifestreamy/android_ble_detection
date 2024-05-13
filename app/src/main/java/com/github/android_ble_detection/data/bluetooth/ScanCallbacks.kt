@@ -16,6 +16,10 @@ internal class DefaultScanCallback(
 ) : ScanCallback() {
 
     /**
+     * If report delay is > 0 in ScanSettings,
+     * does not trigger while
+     * [onBatchScanResults] always triggers instead.
+     *
      * Callback when a BLE advertisement has been found.
      * @param callbackType
      * Determines how this callback was triggered.
@@ -50,6 +54,10 @@ internal class DefaultScanCallback(
         singleDeviceScanCallback(type, device)
     }
 
+    /**
+     * Only triggers when report delay is > 0 in ScanSettings
+     * while [onScanResult] never triggers with delay > 0
+     * */
     override fun onBatchScanResults(results: MutableList<ScanResult>) {
         super.onBatchScanResults(results)
         onBatchFlush(

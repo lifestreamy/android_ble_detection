@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.android_ble_detection.data.bluetooth.BluetoothLEController
 import com.github.android_ble_detection.domain.model.BluetoothLeDevice
+import com.github.android_ble_detection.presentation.SharedScreenEvent.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -13,38 +14,48 @@ import javax.inject.Inject
 class SharedViewModel @Inject constructor(private val blController: BluetoothLEController) :
     ViewModel() {
 
+    init {
+        blController.scannedDevicesListFlow.onEach { newDevices ->
+            _screenState.update { it.copy(scannedDevices = newDevices) }
+        }.launchIn(viewModelScope)
+    }
+
     val errors = blController.errors
 
-    val uiState: StateFlow<SharedScreenState> = combine(
-        blController.scannedDevicesListFlow,
-        blController.flushedDevicesList
-    ) { scanned, flushed ->
-        SharedScreenState(
-            scanned,
-            flushed
-        )
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(1000),
-        SharedScreenState()
-    )
+    private val _screenState: MutableStateFlow<SharedScreenState> =
+        MutableStateFlow(SharedScreenState())
+    val screenState: StateFlow<SharedScreenState> = _screenState.asStateFlow()
 
+    fun onEvent(event: SharedScreenEvent) {
+        when (event) {
+            StartScanForAllDevices -> startScanForAllDevices()
+            StartScanForMyDevices -> startScanForMyDevices()
+            StopScan -> stopScan()
+            ClearDevicesList -> clearDevicesList()
+        }
 
+    }
 
+    private fun startScanForAllDevices(duration: Long? = null) =
+        blController.startScanForAllDevices(duration)
 
-    fun startScan() = blController.startScan()
+    private fun startScanForMyDevices(duration: Long? = null) =
+        blController.startScanForMyDevices(duration)
 
-    fun stopScan() = blController.stopScan()
+    private fun stopScan() = blController.stopScan()
 
-
-    fun startScanForDuration() = blController.startScanForDuration(10000)
-
-    fun flushLastScans() = blController.flushLastScans()
+    private fun clearDevicesList() = _screenState.update { it.copy(scannedDevices = emptyList()) }
 
 }
 
 data class SharedScreenState(
-    val scannedDevices: List<BluetoothLeDevice> = emptyList(),
-    val lastFlushedDevices: List<BluetoothLeDevice> = emptyList()
+    val scannedDevices: List<BluetoothLeDevice> = emptyList()
 )
 
+sealed interface SharedScreenEvent {
+    data object StartScanForAllDevices : SharedScreenEvent
+    data object StartScanForMyDevices : SharedScreenEvent
+    data object StopScan : SharedScreenEvent
+    data object ClearDevicesList : SharedScreenEvent
+
+}

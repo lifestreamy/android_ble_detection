@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.android_ble_detection.core.permissions.getTextToShowGivenPermissions
 import com.github.android_ble_detection.domain.model.BluetoothLeDevice
+import com.github.android_ble_detection.presentation.SharedScreenEvent
 import com.github.android_ble_detection.presentation.SharedScreenState
 import com.github.android_ble_detection.presentation.SharedViewModel
 import com.github.android_ble_detection.presentation.ui.components.*
@@ -44,15 +45,12 @@ fun DevicesRoute(vm: SharedViewModel) {
         val multiplePermissionsState =
             rememberMultiplePermissionsState(permissions = PermissionProvider.LocalAppBluetoothPermissions.current)
         if (multiplePermissionsState.allPermissionsGranted) {
-            val screenState by vm.uiState.collectAsStateWithLifecycle()
+            val screenState by vm.screenState.collectAsStateWithLifecycle()
 
             DevicesScreen(
                 screenState = screenState,
                 errorsFlow = vm.errors,
-                startScan = vm::startScan,
-                stopScan = vm::stopScan,
-                startScanForDuration = vm::startScanForDuration,
-                flushLastScans = vm::flushLastScans,
+                onEvent = vm::onEvent
             )
         } else {
             MultiplePermissionsRequestBlock(permissionsRequestText = getTextToShowGivenPermissions(
@@ -68,10 +66,7 @@ fun DevicesRoute(vm: SharedViewModel) {
 private fun DevicesScreen(
     screenState: SharedScreenState,
     errorsFlow: Flow<String>,
-    startScan: () -> Unit,
-    stopScan: () -> Unit,
-    startScanForDuration: () -> Unit,
-    flushLastScans: () -> Unit,
+    onEvent: (SharedScreenEvent) -> Unit
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -89,11 +84,11 @@ private fun DevicesScreen(
         Column(
             Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 Modifier
-                    .heightIn(max = topColumnMaxHeight)
+                    .heightIn(max = topColumnMaxHeight - 15.dp)
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
@@ -113,8 +108,7 @@ private fun DevicesScreen(
                 )
 
                 LazyColumn(
-                    Modifier
-                        .animateContentSize(),
+                    Modifier.animateContentSize(),
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -132,7 +126,6 @@ private fun DevicesScreen(
                         .fillMaxWidth(0.8f)
                         .padding(vertical = 10.dp)
                 )
-
             }
 
             Row(
@@ -153,44 +146,36 @@ private fun DevicesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(bottomButtonsVerticalSpacing)
                 ) {
-                    ButtonWithAutoResizedText(
-                        text = "Scan",
+                    ButtonWithAutoResizedText(text = "Scan for all devices",
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(max = bottomButtonMaxHeight)
                             .aspectRatio(4f),
-                        onClick = startScan
-                    )
-                    ButtonWithAutoResizedText(
-                        text = "Stop scan",
+                        onClick = { onEvent(SharedScreenEvent.StartScanForAllDevices) })
+                    ButtonWithAutoResizedText(text = "Stop scan",
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(max = bottomButtonMaxHeight)
                             .aspectRatio(4f),
-                        onClick = stopScan
-                    )
+                        onClick = { onEvent(SharedScreenEvent.StopScan) })
                 }
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(bottomButtonsVerticalSpacing)
                 ) {
-                    ButtonWithAutoResizedText(
-                        text = "Scan for duration",
+                    ButtonWithAutoResizedText(text = "Detect my devices",
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(max = bottomButtonMaxHeight)
                             .aspectRatio(4f),
-                        onClick = startScanForDuration
-                    )
-                    ButtonWithAutoResizedText(
-                        text = "Flush last scans",
+                        onClick = { onEvent(SharedScreenEvent.StartScanForMyDevices) })
+                    ButtonWithAutoResizedText(text = "Clear list",
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(max = bottomButtonMaxHeight)
                             .aspectRatio(4f),
-                        onClick = flushLastScans
-                    )
+                        onClick = { onEvent(SharedScreenEvent.ClearDevicesList) })
                 }
             }
         }
@@ -199,7 +184,10 @@ private fun DevicesScreen(
         LaunchedEffect(key1 = Unit) {
             errorsFlow.collect { error ->
                 val job = launch {
-                    snackbarHostState.showSnackbar(message = error, duration = SnackbarDuration.Indefinite)
+                    snackbarHostState.showSnackbar(
+                        message = error,
+                        duration = SnackbarDuration.Indefinite
+                    )
                 }
                 delay(1000)
                 job.cancel()
@@ -235,10 +223,12 @@ private fun DevicesScreenPreview() {
             repeat(15) { this.add(BluetoothLeDevice()) }
         }),
             errorsFlow = flowOf("asd"),
-            startScan = { },
-            stopScan = { },
-            startScanForDuration = { }) {
-
-        }
+            onEvent = {} )
     }
+}
+
+
+@Composable
+fun DeviceProximityCheckScreen(modifier: Modifier = Modifier) {
+    
 }
