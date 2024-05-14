@@ -49,7 +49,7 @@ fun DevicesRoute(vm: SharedViewModel) {
 
             DevicesScreen(
                 screenState = screenState,
-                errorsFlow = vm.errors,
+                snackbarNotifications = vm.snackbarNotifications,
                 onEvent = vm::onEvent
             )
         } else {
@@ -65,7 +65,7 @@ fun DevicesRoute(vm: SharedViewModel) {
 @Composable
 private fun DevicesScreen(
     screenState: SharedScreenState,
-    errorsFlow: Flow<String>,
+    snackbarNotifications: Flow<String>,
     onEvent: (SharedScreenEvent) -> Unit
 ) {
     BoxWithConstraints(
@@ -117,6 +117,7 @@ private fun DevicesScreen(
                             name = device.name,
                             address = device.address,
                             signalStrength = device.signalStrength,
+                            estimatedDistance = device.estimatedDistance,
                             onItemClick = { })
                     }
                 }
@@ -182,10 +183,10 @@ private fun DevicesScreen(
 
         val snackbarHostState = remember { SnackbarHostState() }
         LaunchedEffect(key1 = Unit) {
-            errorsFlow.collect { error ->
+            snackbarNotifications.collect { message ->
                 val job = launch {
                     snackbarHostState.showSnackbar(
-                        message = error,
+                        message = message,
                         duration = SnackbarDuration.Indefinite
                     )
                 }
@@ -222,13 +223,7 @@ private fun DevicesScreenPreview() {
         DevicesScreen(screenState = SharedScreenState(buildList {
             repeat(15) { this.add(BluetoothLeDevice()) }
         }),
-            errorsFlow = flowOf("asd"),
+            snackbarNotifications = flowOf("a", "b", "c", "d"),
             onEvent = {} )
     }
-}
-
-
-@Composable
-fun DeviceProximityCheckScreen(modifier: Modifier = Modifier) {
-    
 }

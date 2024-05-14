@@ -12,9 +12,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isUnspecified
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import com.github.android_ble_detection.presentation.ui.theme.AndroidBleDetectionTheme
 import com.github.android_ble_detection.presentation.ui.util.ThemePreviews
 
@@ -23,12 +21,11 @@ fun AutoResizingText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.titleLarge,
-    color: Color = MaterialTheme.colorScheme.onBackground
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    defaultFontSize: TextUnit = 30.sp
 ) {
     var resizedTextStyle by remember { mutableStateOf(style) }
     var readyToDraw by remember { mutableStateOf(false) }
-
-    val defaultFontSize = 30.sp
 
     Text(
         text = text,

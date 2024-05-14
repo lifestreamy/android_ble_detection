@@ -25,16 +25,22 @@ class BluetoothLEController(private val context: Context) {
 
     val errors = _errors.asSharedFlow()
 
+    private val _isInitialized = MutableStateFlow(false)
+    private var isInitialized: Boolean
+        get() = _isInitialized.value
+        set(value) = _isInitialized.update { value }
 
-    private var isInitialized: Boolean = false
-    private var isScanning: Boolean = false
+
+    private val _isScanning = MutableStateFlow(false)
+    private var isScanning: Boolean
+        get() = _isScanning.value
+        set(value) = _isScanning.update { value }
 
 
     private var blManager: BluetoothManager? = null
     private var blAdapter: BluetoothAdapter? = null
     private var bleScanner: BluetoothLeScanner? = null
 
-//    private var currentScanConfigType: ScanConfig.BleScanConfigType = ScanConfig.defaultConfig
 
     private val defaultScanCallback: ScanCallback =
         DefaultScanCallback(singleDeviceScanCallback = { callbackType, device ->
@@ -57,7 +63,7 @@ class BluetoothLEController(private val context: Context) {
                             map.toMutableMap().apply { remove(device.address) }
                         }
                     }
-                    SingleCallbackType.UNKNOWN -> {/* for when statement exhaustion, should not occur*/
+                    SingleCallbackType.UNKNOWN -> {/* for 'when' statement exhaustion, should not occur*/
                         throw Exception("SingleCallbackType.UNKNOWN found")
                     }
                 }
@@ -106,45 +112,53 @@ class BluetoothLEController(private val context: Context) {
         return true
     }
 
-    fun startScanForAllDevices(duration: Long? = null) {
+    fun startScanForAllDevices(isScanStarted: (Boolean) -> Unit) {
         if (!isScanning) {
-            scope.launch {
+            scope.async {
                 bleScanner?.startScan(
                     ScanConfig.defaultConfig.filters,
                     ScanConfig.defaultConfig.settings,
                     defaultScanCallback
                 )
                 isScanning = true
-                duration?.let {
-                    delay(it)
-                    stopScan()
-                }
+            }.invokeOnCompletion {
+                isScanStarted(true)
             }
-        } else emitError("Can't scan for all devices: already scanning")
+        } else {
+            emitError("Can't scan for all devices: already scanning")
+            isScanStarted(false)
+        }
     }
 
-    fun startScanForMyDevices(duration: Long? = null) {
+    fun startScanForMyDevices(
+        isScanStarted: (Boolean) -> Unit
+    ) {
         if (!isScanning) {
-            scope.launch {
+            scope.async {
                 bleScanner?.startScan(
                     ScanConfig.myDevicesConfig.filters,
                     ScanConfig.myDevicesConfig.settings,
                     defaultScanCallback
                 )
                 isScanning = true
-                duration?.let {
-                    delay(it)
-                    stopScan()
-                }
+            }.invokeOnCompletion {
+                isScanStarted(true)
             }
-        } else emitError("Can't scan for my devices: already scanning")
+        } else {
+            emitError("Can't scan for my devices: already scanning")
+            isScanStarted(false)
+        }
     }
 
-    fun stopScan() {
+    fun stopScan(): Boolean {
         if (isScanning) {
             bleScanner?.stopScan(defaultScanCallback)
             isScanning = false
-        } else emitError("Can't stop scan: not scanning")
+            return true
+        } else {
+            emitError("Can't stop scan: not scanning")
+            return false
+        }
     }
 
 
@@ -153,6 +167,10 @@ class BluetoothLEController(private val context: Context) {
     fun flushLastScans() {
         if (isScanning) bleScanner!!.flushPendingScanResults(defaultScanCallback)
         else emitError("Cannot flush scans while not scanning")
+    }
+
+    fun clearDevicesMap() {
+        _scannedDevicesMap.update { emptyMap() }
     }
 
     private fun reset() {

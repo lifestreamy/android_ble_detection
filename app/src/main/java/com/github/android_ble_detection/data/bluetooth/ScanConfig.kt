@@ -2,6 +2,7 @@ package com.github.android_ble_detection.data.bluetooth
 
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
+import com.github.android_ble_detection.data.bluetooth.BleConstants.myXiaomiMac
 
 object ScanConfig {
 
@@ -9,17 +10,26 @@ object ScanConfig {
 
     val myDevicesConfig = BleScanConfigType.SelectedMacDevicesOnly
 
-    sealed class BleScanConfigType(val filters : List<ScanFilter>, val settings: ScanSettings) {
-        data object AllDevices : BleScanConfigType(filters = emptyList(), settings = BleScanSettings.defaultScanSettings)
+    sealed class BleScanConfigType(
+        val filters: List<ScanFilter>,
+        val settings: ScanSettings
+    ) {
+        data object AllDevices : BleScanConfigType(
+            filters = emptyList(),
+            settings = BleScanSettings.defaultScanSettings
+        )
 
-        data object SelectedMacDevicesOnly : BleScanConfigType(filters = BleScanFilters.mySmartWatchScanFilterAsList, settings = BleScanSettings.defaultScanSettings)
+        data object SelectedMacDevicesOnly : BleScanConfigType(
+            filters = BleScanFilters.mySmartWatchScanFilterAsList,
+            settings = BleScanSettings.defaultScanSettings
+        )
     }
 
 }
 
 private object BleScanSettings {
 
-    val defaultScanSettings : ScanSettings = ScanSettings.Builder().apply {
+    val defaultScanSettings: ScanSettings = ScanSettings.Builder().apply {
         setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY) //scans indefinitely, stop manually to conserve power
         setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES) //callback will trigger on each received advertisement packet
 //        setMatchMode(MATCH_MODE_AGGRESSIVE) // more sensitive
@@ -34,14 +44,21 @@ private object BleScanSettings {
 
 private object BleScanFilters {
 
-        private const val myXiaomiMac = "E1:99:A2:FE:70:47"
-//        private const val myXiaomiName = "Xiaomi Smart Band 7 7047"
 
-    private val selectedMacAddressesScanFilter : ScanFilter = ScanFilter.Builder().apply {
+    private val selectedMacAddressesScanFilter: ScanFilter = ScanFilter.Builder().apply {
         setDeviceAddress(myXiaomiMac)
     }.build()
 
     //pass the list to startScan(List<ScanFilter>, ScanSettings, ScanCallback)
     val mySmartWatchScanFilterAsList: List<ScanFilter> = listOf(selectedMacAddressesScanFilter)
+
+}
+
+object BleConstants {
+
+    const val myXiaomiMac = "E1:99:A2:FE:70:47"
+    const val defaultThresholdDistance = 4 //Distance in cm at which the device is registered as being close
+
+//        private const val myXiaomiName = "Xiaomi Smart Band 7 7047"
 
 }
