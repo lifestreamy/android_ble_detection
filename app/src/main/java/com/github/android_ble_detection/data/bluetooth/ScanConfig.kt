@@ -57,7 +57,7 @@ private object BleScanFilters {
 object BleConstants {
 
     const val myXiaomiMac = "E1:99:A2:FE:70:47"
-    const val defaultThresholdDistance = 4 //Distance in cm at which the device is registered as being close
+    const val defaultThresholdDistance = 10 //Distance in cm at which the device is registered as being close
 
 //        private const val myXiaomiName = "Xiaomi Smart Band 7 7047"
 

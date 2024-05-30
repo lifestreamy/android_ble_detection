@@ -4,11 +4,11 @@ import java.io.Serializable
 import kotlin.math.pow
 
 internal class KalmanFilter(
-    private var R: Double,      //  Process Noise . Looks like a constant delta
-    private var Q: Double,      //  Measurement Noise
-    private var A: Double = 1.0,//  State Vector
-    private var B: Double = 0.0,//  Control Vector
-    private var C: Double = 1.0 //  Measurement Vector
+    private val R: Double,      //  Process Noise . Looks like a constant delta
+    private val Q: Double,      //  Measurement Noise
+    private val A: Double = 1.0,//  State Vector
+    private val B: Double = 0.0,//  Control Vector
+    private val C: Double = 1.0 //  Measurement Vector
 ) : Serializable {
     companion object {
         // Default Kalman R (Process Noise) & Q (Measurement Noise)
@@ -69,7 +69,7 @@ fun Double.calculateDistanceFromRssi(
     if (this == 0.0) return -1.0 // if we cannot determine accuracy, return -1.
 
     val ratio = this * 1.0 / txPower
-
+// L = l0 * 10 ^ ((p0 - p) / 10 * n /* q для воздуха 2, с препятствиями > 2*/ ) //
     return if (ratio < 1.0) ratio.pow(10.0) + 0.01 else (0.8) * ratio.pow(7.0) + 0.01
 //        val accuracy = (0.89976) * ratio.pow(7.7095) + 0.111  old reference values
 }
