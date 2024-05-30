@@ -35,5 +35,3 @@ https://github.com/lifestreamy/android_ble_detection/assets/44506462/2b89c959-39
 Android, Kotlin, Jetpack Compose, Dagger-Hilt, Coroutines, Flows, Gradle Version Catalogs, Bluetooth LE, Чистая Архитектура, MVI
 
 ---
-(C)
-- Тимофей К.
